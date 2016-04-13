@@ -53,7 +53,7 @@ bd_grad = zeros(size(bd));
 %  convolutional and subsampling (mean pooling) layers.  You will then use
 %  the responses from the convolution and pooling layer as the input to a
 %  standard softmax layer.
-
+   
 %% Convolutional Layer
 %  For each image and each filter, convolve the image with the filter, add
 %  the bias and apply the sigmoid nonlinearity.  Then subsample the 
@@ -72,6 +72,8 @@ activations = zeros(convDim,convDim,numFilters,numImages);
 activationsPooled = zeros(outputDim,outputDim,numFilters,numImages);
 
 %%% YOUR CODE HERE %%%
+activations = cnnConvolve(filterDim, numFilters, images, Wc, bc);
+activationsPooled=cnnPool(poolDim, activations);
 
 % Reshape activations into 2-d matrix, hiddenSize x numImages,
 % for Softmax layer
@@ -88,7 +90,10 @@ activationsPooled = reshape(activationsPooled,[],numImages);
 probs = zeros(numClasses,numImages);
 
 %%% YOUR CODE HERE %%%
-
+outAct = Wd*activationsPooled+repmat(bd,1,numImages);
+outAct = exp(outAct);
+stemp = 1./sum(outAct,1);
+probs = outAct.*repmat(stemp,numClasses,1);
 %%======================================================================
 %% STEP 1b: Calculate Cost
 %  In this step you will use the labels given as input and the probs
@@ -98,7 +103,10 @@ probs = zeros(numClasses,numImages);
 cost = 0; % save objective into cost
 
 %%% YOUR CODE HERE %%%
-
+index= sub2ind([numClasses,numImages],labels,[1:numImages]');
+temp_cost= probs(index);
+temp_cost= log(temp_cost);
+cost = -sum(temp_cost);
 % Makes predictions given probs and returns without backproagating errors.
 if pred
     [~,preds] = max(probs,[],1);
@@ -118,6 +126,18 @@ end;
 %  quickly.
 
 %%% YOUR CODE HERE %%%
+delta2= probs;
+delta2(index)=probs(index)-1;
+gradPool= Wd'*delta2;
+gradPool= reshape(gradPool,outputDim,outputDim,numFilters,numImages);
+delta_pool = zeros(convDim,convDim,numFilters,numImages);
+for imgNum=1:numImages
+   for filterNum=1:numFilters
+       delta_pool(:,:,filterNum,imgNum)=1/poolDim^2*...
+       kron(gradPool(:,:,filterNum,imgNum),ones(poolDim)); 
+   end
+end
+delta1=delta_pool.*(activations.*(1-activations));
 
 %%======================================================================
 %% STEP 1d: Gradient Calculation
@@ -128,6 +148,19 @@ end;
 %  for that filter with each image and aggregate over images.
 
 %%% YOUR CODE HERE %%%
+Wd_grad= delta2*activationsPooled';
+bd_grad= sum(delta2,2);
+
+for filterNum=1:numFilters
+   for imgNum=1:numImages
+       c_temp = rot90(squeeze(delta1(:,:,filterNum,imgNum)),2);
+       Wc_grad(:,:,filterNum)= Wc_grad(:,:,filterNum)...
+                             + conv2(images(:,:,imgNum),c_temp,'valid');
+       b_temp= squeeze(delta1(:,:,filterNum,imgNum));                  
+       bc_grad(filterNum)=bc_grad(filterNum)+sum(sum(b_temp));                   
+   end
+end
+
 
 %% Unroll gradient into grad vector for minFunc
 grad = [Wc_grad(:) ; Wd_grad(:) ; bc_grad(:) ; bd_grad(:)];
