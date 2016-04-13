@@ -91,9 +91,16 @@ probs = zeros(numClasses,numImages);
 
 %%% YOUR CODE HERE %%%
 outAct = Wd*activationsPooled+repmat(bd,1,numImages);
-outAct = exp(outAct);
-stemp = 1./sum(outAct,1);
-probs = outAct.*repmat(stemp,numClasses,1);
+for classNum= 1:numClasses
+   temp= outAct-repmat(outAct(classNum,:),numClasses,1);
+   temp= exp(temp);
+   probs(classNum,:)= 1./sum(temp);
+end
+% to prohibit the zeros probability 1./infinit when outAct exists some
+% large values 
+% outAct = exp(outAct);
+% stemp = 1./sum(outAct,1);
+% probs = outAct.*repmat(stemp,numClasses,1);
 %%======================================================================
 %% STEP 1b: Calculate Cost
 %  In this step you will use the labels given as input and the probs
