@@ -86,6 +86,10 @@ opttheta = randTheta;
 %  You will need to whitened the patches with the zca2 function 
 %  then call minFunc with the softICACost function as seen in the RICA exercise.
 %%% YOUR CODE HERE %%%
+[patches,V] = zca2(patches);
+m = sqrt(sum(patches.^2) + (1e-8));
+x = bsxfunwrap(@rdivide,patches,m);
+[opttheta, cost, exitflag] = minFunc( @(theta) softICACost(theta, x, params), randTheta, options); % Use x or xw
 
 % reshape visualize weights
 W = reshape(opttheta, params.numFeatures, params.n);
@@ -120,8 +124,9 @@ testFeatures = reshape(testAct, featureSize, size(testData, 2));
 %% STEP 4: Train the softmax classifier
 
 numClasses  = 5; % doing 5-class digit recognition
+numClassParams = 4; % we assume w_numClasses to be zeros. so parameters is numClasses-1 
 % initialize softmax weights randomly
-randTheta2 = randn(numClasses, featureSize)*0.01;  % 1/sqrt(params.n);
+randTheta2 = randn(numClassParams, featureSize)*0.01;  % 1/sqrt(params.n);
 randTheta2 = randTheta2 ./ repmat(sqrt(sum(randTheta2.^2,2)), 1, size(randTheta2,2)); 
 randTheta2 = randTheta2';
 randTheta2 = randTheta2(:);
@@ -134,14 +139,17 @@ options.MaxIter = 300;
 
 % optimize
 %%% YOUR CODE HERE %%%
-
-
+optTheta=zeros(featureSize,numClassParams);
+optTheta(:) = minFunc(@softmax_regression_vec,randTheta2,options,trainFeatures,trainLabels);
+theta=[optTheta,zeros(featureSize,1)]; % expand the last class
 %%======================================================================
 %% STEP 5: Testing 
 % Compute Predictions on tran and test sets using softmaxPredict
 % and softmaxModel
 %%% YOUR CODE HERE %%%
 % Classification Score
+[~,train_pred] = max(theta'*trainFeatures, [], 1);
+[~,pred]       = max(theta'*testFeatures, [], 1);
 fprintf('Train Accuracy: %f%%\n', 100*mean(train_pred(:) == trainLabels(:)));
 fprintf('Test Accuracy: %f%%\n', 100*mean(pred(:) == testLabels(:)));
 % You should get 100% train accuracy and ~99% test accuracy. With random
