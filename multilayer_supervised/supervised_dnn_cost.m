@@ -31,6 +31,9 @@ switch ei.activation_fun
     case 'relu'
         actF = @relu ; 
         g_actF = @g_relu ; 
+    case 'linear'
+        actF = @linea;
+        g_actF = @g_linea;
 end
 
 for ll = 1:numHidden
