@@ -27,6 +27,19 @@ function [f,g] = softmax_regression(theta, X,y)
   %        Before returning g, make sure you form it back into a vector with g=g(:);
   %
 %%% YOUR CODE HERE %%%
+  % one hot encoding y 
+  y_onehot = zeros(num_classes,m); 
+  I = sub2ind(size(y_onehot),y,1:m); 
+  y_onehot(I) = 1;
   
+  prob = exp(theta'*X);
+  prob = [prob;ones(1,m)]; % last class 
+  prob = bsxfun(@rdivide,prob,sum(prob));
+  
+  % negative log likelihood 
+  f = -sum((sum(log(prob).*y_onehot)));
+  
+  g = -X*(y_onehot-prob)';
+  g(:,end)=[]; % eliminate last params for class 10;
   g=g(:); % make gradient a vector for minFunc
 
