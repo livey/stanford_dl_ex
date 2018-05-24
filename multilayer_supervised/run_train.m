@@ -25,7 +25,7 @@ ei.input_dim = 784;
 % number of output classes
 ei.output_dim = 10;
 % sizes of all hidden layers and the output layer
-ei.layer_sizes = [2014, ei.output_dim];
+ei.layer_sizes = [128,128, 128, ei.output_dim];
 % scaling parameter for l2 weight regularization penalty
 ei.lambda = 0.01;
 % which type of activation function to use in hidden layers

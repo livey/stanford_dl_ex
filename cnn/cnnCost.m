@@ -72,7 +72,8 @@ activations = zeros(convDim,convDim,numFilters,numImages);
 activationsPooled = zeros(outputDim,outputDim,numFilters,numImages);
 
 %%% YOUR CODE HERE %%%
-
+activations = cnnConvolve(filterDim, numFilters, images, Wc, bc);
+activationsPooled = cnnPool(poolDim, activations);
 % Reshape activations into 2-d matrix, hiddenSize x numImages,
 % for Softmax layer
 activationsPooled = reshape(activationsPooled,[],numImages);
@@ -88,7 +89,9 @@ activationsPooled = reshape(activationsPooled,[],numImages);
 probs = zeros(numClasses,numImages);
 
 %%% YOUR CODE HERE %%%
-
+probs = Wd*activationsPooled+repmat(bd,1,numImages);
+probs =exp(probs);
+probs = bsxfun(@rdivide,probs,sum(probs));
 %%======================================================================
 %% STEP 1b: Calculate Cost
 %  In this step you will use the labels given as input and the probs
@@ -98,6 +101,9 @@ probs = zeros(numClasses,numImages);
 cost = 0; % save objective into cost
 
 %%% YOUR CODE HERE %%%
+% first convert class number to one hot coding 
+index = sub2ind(size(probs),labels',1:size(probs,2));
+cost = -sum(log(probs(index))) / numImages; 
 
 % Makes predictions given probs and returns without backproagating errors.
 if pred
@@ -118,6 +124,19 @@ end;
 %  quickly.
 
 %%% YOUR CODE HERE %%%
+temp = zeros(size(probs));
+temp(index) = 1;
+errDense = (probs-temp) / numImages; 
+errDenseReshaped = reshape(Wd'*errDense,outputDim,outputDim,numFilters,numImages);
+errConv = zeros(convDim,convDim,numFilters,numImages);
+for imageNum = 1 : numImages
+    for filterNum = 1 : numFilters
+        delta = errDenseReshaped(:,:,filterNum,imageNum);
+        deltaPool = (1/poolDim^2).*kron(delta, ones(poolDim,poolDim));
+        err = deltaPool.*activations(:,:,filterNum,imageNum).*(1-activations(:,:,filterNum,imageNum));
+        errConv(:,:,filterNum,imageNum) = err; 
+    end
+end
 
 %%======================================================================
 %% STEP 1d: Gradient Calculation
@@ -128,7 +147,20 @@ end;
 %  for that filter with each image and aggregate over images.
 
 %%% YOUR CODE HERE %%%
+Wd_grad = errDense*activationsPooled';
+bd_grad = sum(errDense,2);
 
+for filterNum = 1 : numFilters
+    for numImage = 1 : numImages
+        im = squeeze(images(:,:,numImage));
+        filter = errConv(:,:,filterNum,numImage);
+        bc_grad(filterNum) = bc_grad(filterNum) + sum(filter(:));
+        filter = rot90(filter,2);
+        newErr = conv2(im,filter,'valid');
+        Wc_grad(:,:,filterNum) = Wc_grad(:,:,filterNum) + newErr;    
+    end
+     
+end
 %% Unroll gradient into grad vector for minFunc
 grad = [Wc_grad(:) ; Wd_grad(:) ; bc_grad(:) ; bd_grad(:)];
 

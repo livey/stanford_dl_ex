@@ -39,15 +39,15 @@ theta = cnnInitParams(imageDim,filterDim,numFilters,poolDim,numClasses);
 %  calculation for your cnnCost.m function.  You may need to add the
 %  appropriate path or copy the file to this directory.
 
-DEBUG=false;  % set this to true to check gradient
+DEBUG=true;  % set this to true to check gradient
 if DEBUG
     % To speed up gradient checking, we will use a reduced network and
     % a debugging data set
     db_numFilters = 2;
     db_filterDim = 9;
     db_poolDim = 5;
-    db_images = images(:,:,1:10);
-    db_labels = labels(1:10);
+    db_images = images(:,:,1:9); %10
+    db_labels = labels(1:9);
     db_theta = cnnInitParams(imageDim,db_filterDim,db_numFilters,...
                 db_poolDim,numClasses);
     
